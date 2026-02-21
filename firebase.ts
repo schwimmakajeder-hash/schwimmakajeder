@@ -1,0 +1,1 @@
+// Diese Datei wird nicht mehr verwendet. Die App nutzt nun Supabase (siehe supabase.ts).
