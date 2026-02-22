@@ -112,6 +112,7 @@ export const useStore = create<AppStore>((set, get) => ({
         billedDate: c.billed_date,
         poolRent: c.pool_rent,
         leaderId: c.leader_id,
+        courseNumber: c.course_number,
         attendanceListSent: c.attendance_list_sent,
         participants: (c.participants || []).map((p: any) => ({
           id: p.id,
@@ -257,6 +258,7 @@ export const useStore = create<AppStore>((set, get) => ({
         required_helpers: course.requiredHelpers,
         pool_rent: course.poolRent,
         leader_id: course.leaderId,
+        course_number: course.courseNumber,
         billed_date: course.billedDate,
         attendance_list_sent: course.attendanceListSent
       });
