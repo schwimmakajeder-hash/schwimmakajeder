@@ -334,8 +334,8 @@ HINWEIS: Die detaillierte PDF-Liste wurde soeben heruntergeladen. Bitte füge di
       c.sessions.forEach(s => {
         if (s.date >= today) {
           const staffInSession = s.instructorIds.map(id => instructors.find(i => i.id === id)).filter(Boolean);
-          const countL = staffInSession.filter(i => i?.category === 'Schwimmlehrer:in').length;
-          const countH = staffInSession.filter(i => i?.category === 'Helfer:in').length;
+          const countL = staffInSession.filter(i => i?.category === 'Schwimmlehrer:in' || i?.id === c.leaderId).length;
+          const countH = staffInSession.filter(i => i?.category === 'Helfer:in' && i?.id !== c.leaderId).length;
           
           if (countL < c.requiredInstructors || countH < c.requiredHelpers) {
             critical.push({
@@ -960,7 +960,7 @@ HINWEIS: Die detaillierte PDF-Liste wurde soeben heruntergeladen. Bitte füge di
       {duplicatingCourse && (
         <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
           <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm" onClick={() => setDuplicatingCourse(null)}></div>
-          <div className="bg-white w-full max-w-lg rounded-[3rem] shadow-2xl relative overflow-hidden animate-in zoom-in-95 duration-300">
+          <div className="bg-white w-full max-w-lg rounded-[3rem] shadow-2xl relative overflow-y-auto max-h-[90vh] animate-in zoom-in-95 duration-300 custom-scrollbar">
             <div className="h-2 w-full bg-blue-600"></div>
             <button 
               onClick={() => setDuplicatingCourse(null)}
