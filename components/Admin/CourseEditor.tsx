@@ -26,7 +26,8 @@ import {
   User as UserIcon,
   BellRing,
   Send,
-  Share2
+  Share2,
+  X
 } from 'lucide-react';
 import { useStore } from '../../store';
 import { downloadSingleSessionICal, exportAttendancePDF } from '../../utils/export';
@@ -43,6 +44,8 @@ const CourseEditor: React.FC<CourseEditorProps> = ({ initialCourse, onSave, onCa
   const [importStatus, setImportStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const [newTitle, setNewTitle] = useState('');
   const [showAddTitle, setShowAddTitle] = useState(false);
+  const [bulkInput, setBulkInput] = useState('');
+  const [showBulkImport, setShowBulkImport] = useState(false);
   
   const availableInstructors = instructors;
   const isAdmin = currentUser?.role === 'ADMIN' || currentUser?.isAdmin;
@@ -65,6 +68,33 @@ const CourseEditor: React.FC<CourseEditorProps> = ({ initialCourse, onSave, onCa
     courseNumber: '',
     attendanceListSent: false
   });
+
+  const handleBulkImport = () => {
+    if (!bulkInput.trim()) return;
+    
+    const lines = bulkInput.trim().split('\n');
+    const newParticipants: Participant[] = lines.map(line => {
+      const parts = line.split(',').map(p => p.trim());
+      // Format: Name, Geb. Datum, Erziehungsberechtigter, telefonnummer und Email
+      return {
+        id: crypto.randomUUID(),
+        name: parts[0] || 'Unbekannt',
+        dateOfBirth: parts[1] || '',
+        guardianName: parts[2] || '',
+        phone: parts[3] || '',
+        email: parts[4] || '',
+        paid: false,
+        notes: ''
+      };
+    });
+
+    setCourse(prev => ({
+      ...prev,
+      participants: [...prev.participants, ...newParticipants]
+    }));
+    setBulkInput('');
+    setShowBulkImport(false);
+  };
 
   const generateCourseNumber = (leaderId: string) => {
     const leader = instructors.find(i => i.id === leaderId);
@@ -181,7 +211,7 @@ HINWEIS: Die detaillierte PDF-Liste wurde soeben heruntergeladen. Bitte füge di
       date: new Date().toISOString().split('T')[0],
       startTime: '14:00',
       durationMinutes: 45,
-      instructorIds: [],
+      instructorIds: course.leaderId ? [course.leaderId] : [],
       isReplacement: false,
       is5er: true,
       is7er: false,
@@ -364,9 +394,9 @@ ZVR698175623, Sitz: SCHLINS`;
   const totalProfit = totalRevenue - totalPersonnelCosts;
 
   return (
-    <div className="bg-white rounded-[2.5rem] shadow-2xl border border-slate-200 overflow-hidden max-w-5xl mx-auto flex flex-col h-[90vh]">
+    <div className="bg-white rounded-[2.5rem] shadow-2xl border border-slate-200 overflow-hidden max-w-5xl mx-auto flex flex-col h-[90vh] relative">
       {/* Header */}
-      <div className="p-8 border-b border-slate-100 flex flex-col sm:flex-row justify-between items-center gap-6 bg-slate-50/50 shrink-0">
+      <div className="p-8 border-b border-slate-100 flex flex-col sm:flex-row justify-between items-center gap-6 bg-slate-50/50 shrink-0 z-10">
         <div>
           <h2 className="text-2xl font-black text-slate-900 leading-tight">
             {initialCourse ? 'Kurs bearbeiten' : 'Neuen Kurs anlegen'}
@@ -487,8 +517,8 @@ ZVR698175623, Sitz: SCHLINS`;
               </select>
             </div>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 items-end">
-            <div className="md:col-span-1 space-y-1.5">
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-6 items-end">
+            <div className="space-y-1.5">
               <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Ort</label>
               <select value={course.location} onChange={(e) => setCourse({ ...course, location: e.target.value })} className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl font-bold text-sky-500">
                 {LOCATIONS.map(loc => <option key={loc} value={loc}>{loc}</option>)}
@@ -499,12 +529,22 @@ ZVR698175623, Sitz: SCHLINS`;
               <div className="relative"><Euro className="absolute left-4 top-4 w-5 h-5 text-slate-400" /><input type="number" value={course.price} onChange={(e) => setCourse({ ...course, price: parseFloat(e.target.value) || 0 })} className="w-full p-4 pl-12 bg-slate-50 border border-slate-200 rounded-2xl font-bold text-sky-500" /></div>
             </div>
             <div className="space-y-1.5">
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Soll-Lehrer</label>
+              <input type="number" value={course.requiredInstructors} onChange={(e) => setCourse({ ...course, requiredInstructors: parseInt(e.target.value) || 0 })} className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl font-bold text-sky-500" />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Soll-Helfer</label>
+              <input type="number" value={course.requiredHelpers} onChange={(e) => setCourse({ ...course, requiredHelpers: parseInt(e.target.value) || 0 })} className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl font-bold text-sky-500" />
+            </div>
+            <div className="space-y-1.5">
               <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Farbe</label>
               <div className="flex gap-2 p-2.5 bg-slate-50 border border-slate-200 rounded-2xl overflow-x-auto scrollbar-hide">
                 {COURSE_COLORS.map(c => <button key={c.value} onClick={() => setCourse({ ...course, color: c.value })} className={`w-8 h-8 rounded-full border-2 shrink-0 transition-all ${course.color === c.value ? 'border-slate-900 scale-110' : 'border-white'}`} style={{ backgroundColor: c.value }} />)}
               </div>
             </div>
-            <div className="md:col-span-1">
+          </div>
+          <div className="flex justify-end">
+            <div className="w-full md:w-1/3">
               <button 
                 onClick={handleSendAttendanceToLeader}
                 className={`w-full flex items-center justify-center gap-2 p-4 rounded-2xl border-2 transition-all font-black text-[10px] uppercase tracking-widest ${course.attendanceListSent ? 'bg-green-50 border-green-200 text-green-600' : 'bg-blue-600 border-blue-600 text-white shadow-lg shadow-blue-100 hover:bg-blue-700'}`}
@@ -603,11 +643,41 @@ ZVR698175623, Sitz: SCHLINS`;
               <h3 className="text-lg font-black text-slate-800 uppercase tracking-tight">3. Teilnehmer ({course.participants.length})</h3>
             </div>
             <div className="flex gap-2">
+              <button 
+                onClick={() => setShowBulkImport(!showBulkImport)}
+                className="flex items-center gap-2 px-5 py-2.5 bg-blue-50 text-blue-600 rounded-xl hover:bg-blue-100 transition-all text-xs font-bold"
+              >
+                <Upload className="w-4 h-4" /> Bulk Import
+              </button>
               <input type="file" accept=".csv" ref={fileInputRef} onChange={handleCSVImport} className="hidden" />
               <button onClick={() => fileInputRef.current?.click()} className={`flex items-center gap-2 px-5 py-2.5 rounded-xl transition-all text-xs font-bold shadow-lg shadow-slate-100 ${importStatus === 'success' ? 'bg-green-100 text-green-700' : importStatus === 'error' ? 'bg-red-100 text-red-700' : 'bg-white text-slate-600 border border-slate-200'}`}>{importStatus === 'success' ? <CheckCircle2 className="w-4 h-4" /> : <Upload className="w-4 h-4" />}{importStatus === 'success' ? 'Importiert!' : importStatus === 'error' ? 'Fehler!' : 'CSV Import'}</button>
               <button onClick={handleManualAddParticipant} className="flex items-center gap-2 px-5 py-2.5 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-all text-xs font-bold shadow-lg shadow-green-100"><Plus className="w-4 h-4" /> Teilnehmer hinzufügen</button>
             </div>
           </div>
+
+          {showBulkImport && (
+            <div className="bg-blue-50 p-8 rounded-[2rem] border border-blue-100 space-y-4 animate-in slide-in-from-top-4">
+              <div className="flex justify-between items-start">
+                <div>
+                  <h4 className="text-sm font-black text-blue-900 uppercase tracking-wider mb-1">Excel Bulk Import</h4>
+                  <p className="text-xs text-blue-600 font-medium">Kopiere Zeilen aus Excel. Format: Name, Geb. Datum, Erziehungsberechtigter, Telefon, Email</p>
+                </div>
+                <button onClick={() => setShowBulkImport(false)} className="text-blue-400 hover:text-blue-600 p-2"><X className="w-5 h-5" /></button>
+              </div>
+              <textarea 
+                value={bulkInput}
+                onChange={(e) => setBulkInput(e.target.value)}
+                placeholder="Max Mustermann, 01.01.2018, Maria Muster, 0123456, max@web.de"
+                className="w-full h-40 p-5 bg-white border border-blue-200 rounded-3xl text-sm font-medium focus:ring-4 focus:ring-blue-100 outline-none transition-all"
+              />
+              <button 
+                onClick={handleBulkImport}
+                className="w-full py-4 bg-blue-600 text-white rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-blue-700 transition-all shadow-xl shadow-blue-100"
+              >
+                Daten importieren
+              </button>
+            </div>
+          )}
           {course.participants.length > 0 && (
             <div className="bg-slate-50/80 rounded-[2rem] border border-slate-200 p-8 mb-8">
               <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-6 flex items-center gap-2"><UserIcon className="w-3.5 h-3.5" /> Aktuelle Teilnehmerliste</h4>
